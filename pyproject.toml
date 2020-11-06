@@ -1,0 +1,24 @@
+[tool.poetry]
+authors = ["long2ice <long2ice@gmail.com>"]
+description = "A request rate limiter for fastapi"
+license = "Apache2.0"
+name = "fastapi-limiter"
+version = "0.1.0"
+
+[tool.poetry.dependencies]
+fastapi = "*"
+python = "^3.7"
+
+[tool.poetry.dev-dependencies]
+bandit = "*"
+black = "*"
+flake8 = "*"
+isort = "*"
+pytest = "*"
+pytest-asyncio = "*"
+pytest-mock = "*"
+pytest-xdist = "*"
+
+[build-system]
+build-backend = "poetry.core.masonry.api"
+requires = ["poetry-core>=1.0.0"]
