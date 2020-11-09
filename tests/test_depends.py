@@ -11,6 +11,8 @@ def test_limiter():
         assert response.status_code == 200
         assert response.json() == {"msg": "Hello World"}
 
+        client.get("/")
+
         response = client.get("/")
         assert response.status_code == 403
         sleep(5)

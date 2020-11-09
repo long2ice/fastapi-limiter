@@ -10,7 +10,7 @@ app = FastAPI()
 
 @app.on_event("startup")
 async def startup():
-    redis = await aioredis.create_redis_pool("redis://redis")
+    redis = await aioredis.create_redis_pool("redis://localhost")
     FastAPILimiter.init(redis)
 
 
