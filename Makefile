@@ -1,4 +1,4 @@
-checkfiles = fastapi_limiter/ tests/ conftest.py
+checkfiles = fastapi_limiter/ tests/ examples/ conftest.py
 black_opts = -l 100 -t py38
 py_warn = PYTHONDEVMODE=1
 
