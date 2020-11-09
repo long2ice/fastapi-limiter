@@ -35,4 +35,4 @@ test: deps
 build: deps
 	@poetry build
 
-ci: check testall
+ci: check test

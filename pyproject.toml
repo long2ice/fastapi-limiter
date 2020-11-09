@@ -15,6 +15,7 @@ repository = "https://github.com/long2ice/fastapi-limiter.git"
 version = "0.1.0"
 
 [tool.poetry.dependencies]
+aioredis = "*"
 fastapi = "*"
 python = "^3.7"
 
@@ -27,6 +28,8 @@ pytest = "*"
 pytest-asyncio = "*"
 pytest-mock = "*"
 pytest-xdist = "*"
+uvicorn = "*"
+requests = "*"
 
 [build-system]
 build-backend = "poetry.core.masonry.api"
