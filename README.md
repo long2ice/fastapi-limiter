@@ -77,11 +77,19 @@ async def default_identifier(request: Request):
 
 ### callback
 
-Callback when access is forbidden, default is raise `HTTPException` with `403` status code.
+Callback when access is forbidden, default is raise `HTTPException` with `429` status code.
 
 ```py
-async def default_callback(request: Request):
-    raise HTTPException(HTTP_403_FORBIDDEN, "The request is frequent")
+async def default_callback(request: Request, expire: int):
+    """
+    default callback when too many requests
+    :param request:
+    :param expire: The remaining seconds
+    :return:
+    """
+    raise HTTPException(
+        HTTP_429_TOO_MANY_REQUESTS, "Too Many Requests", headers={"Retry-After": str(expire)}
+    )
 ```
 
 ## License
