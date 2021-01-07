@@ -1,9 +1,9 @@
-from typing import Callable
+from typing import Callable, Optional
 
 from pydantic import conint
 from starlette.requests import Request
 
-from fastapi_limiter import FastAPILimiter, default_callback, default_identifier
+from fastapi_limiter import FastAPILimiter
 
 
 class RateLimiter:
@@ -13,8 +13,8 @@ class RateLimiter:
         seconds: conint(ge=-1) = 0,
         minutes: conint(ge=-1) = 0,
         hours: conint(ge=-1) = 0,
-        identifier: Callable = default_identifier,
-        callback: Callable = default_callback,
+        identifier: Optional[Callable] = None,
+        callback: Optional[Callable] = None,
     ):
         self.times = times
         self.seconds = seconds + 60 * minutes + 3600 * hours
