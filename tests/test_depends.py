@@ -14,7 +14,7 @@ def test_limiter():
         client.get("/")
 
         response = client.get("/")
-        assert response.status_code == 403
+        assert response.status_code == 429
         sleep(5)
 
         response = client.get("/")
