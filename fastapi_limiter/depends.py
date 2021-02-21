@@ -11,6 +11,7 @@ class RateLimiter:
     def __init__(
         self,
         times: conint(ge=0) = 1,
+        milliseconds: conint(ge=-1) = 0,
         seconds: conint(ge=-1) = 0,
         minutes: conint(ge=-1) = 0,
         hours: conint(ge=-1) = 0,
@@ -18,7 +19,7 @@ class RateLimiter:
         callback: Optional[Callable] = None,
     ):
         self.times = times
-        self.seconds = seconds + 60 * minutes + 3600 * hours
+        self.milliseconds = milliseconds + 1000 * seconds + 60000 * minutes + 3600000 * hours
         self.identifier = identifier
         self.callback = callback
 
@@ -33,9 +34,9 @@ class RateLimiter:
         key = FastAPILimiter.prefix + ":" + rate_key
         p = redis.pipeline()
         p.incrby(key, 1)
-        p.ttl(key)
-        num, expire = await p.execute()
+        p.pttl(key)
+        num, pexpire = await p.execute()
         if num == 1:
-            await redis.expire(key, self.seconds)
+            await redis.pexpire(key, self.milliseconds)
         if num > self.times:
-            return await callback(request, expire)
+            return await callback(request, pexpire)
