@@ -7,3 +7,8 @@
 - Configuring the global default through the FastAPILimiter.init method.
 - Update status to 429 when too many requests.
 - Update default_callback params and add `Retry-After` response header.
+
+### 0.1.2
+
+- Use milliseconds instead of seconds as default unit of expiration.
+- Update default_callback, round milliseconds up to nearest second for `Retry-After` value.
