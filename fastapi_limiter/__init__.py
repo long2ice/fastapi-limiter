@@ -21,7 +21,6 @@ async def default_callback(request: Request, pexpire: int):
     :param pexpire: The remaining milliseconds
     :return:
     """
-    
     expire = ceil(pexpire / 1000)
 
     raise HTTPException(
