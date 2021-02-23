@@ -4,6 +4,7 @@ import aioredis
 from math import ceil
 from fastapi import HTTPException
 from starlette.requests import Request
+from starlette.responses import Response
 from starlette.status import HTTP_429_TOO_MANY_REQUESTS
 
 
@@ -14,7 +15,7 @@ async def default_identifier(request: Request):
     return request.client.host
 
 
-async def default_callback(request: Request, pexpire: int):
+async def default_callback(request: Request, response: Response, pexpire: int):
     """
     default callback when too many requests
     :param request:
