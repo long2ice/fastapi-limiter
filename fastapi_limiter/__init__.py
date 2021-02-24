@@ -1,7 +1,7 @@
+from math import ceil
 from typing import Callable
 
 import aioredis
-from math import ceil
 from fastapi import HTTPException
 from starlette.requests import Request
 from starlette.responses import Response

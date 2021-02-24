@@ -32,10 +32,10 @@ class RateLimiter:
         redis = FastAPILimiter.redis
         rate_key = await identifier(request)
         key = FastAPILimiter.prefix + ":" + rate_key
-        p = redis.pipeline()
-        p.incrby(key, 1)
-        p.pttl(key)
-        num, pexpire = await p.execute()
+        tr = redis.multi_exec()
+        tr.incrby(key, 1)
+        tr.pttl(key)
+        num, pexpire = await tr.execute()
         if num == 1:
             await redis.pexpire(key, self.milliseconds)
         if num > self.times:
