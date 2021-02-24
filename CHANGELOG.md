@@ -12,3 +12,4 @@
 
 - Use milliseconds instead of seconds as default unit of expiration.
 - Update default_callback, round milliseconds up to nearest second for `Retry-After` value.
+- Access response in callback.
