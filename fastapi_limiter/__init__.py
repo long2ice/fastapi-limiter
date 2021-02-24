@@ -20,6 +20,7 @@ async def default_callback(request: Request, response: Response, pexpire: int):
     default callback when too many requests
     :param request:
     :param pexpire: The remaining milliseconds
+    :param response:
     :return:
     """
     expire = ceil(pexpire / 1000)
