@@ -12,7 +12,7 @@ async def default_identifier(request: Request):
     forwarded = request.headers.get("X-Forwarded-For")
     if forwarded:
         return forwarded.split(",")[0]
-    return request.client.host
+    return request.client.host + ":" + request.scope["path"]
 
 
 async def default_callback(request: Request, response: Response, pexpire: int):

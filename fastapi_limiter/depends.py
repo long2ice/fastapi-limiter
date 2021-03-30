@@ -26,12 +26,19 @@ class RateLimiter:
     async def __call__(self, request: Request, response: Response):
         if not FastAPILimiter.redis:
             raise Exception("You must call FastAPILimiter.init in startup event of fastapi!")
+        index = 0
+        for route in request.app.routes:
+            if route.path == request.scope["path"]:
+                for idx, dependency in enumerate(route.dependencies):
+                    if self is dependency.dependency:
+                        index = idx
+                        break
         # moved here because constructor run before app startup
         identifier = self.identifier or FastAPILimiter.identifier
         callback = self.callback or FastAPILimiter.callback
         redis = FastAPILimiter.redis
         rate_key = await identifier(request)
-        key = FastAPILimiter.prefix + ":" + rate_key
+        key = f"{FastAPILimiter.prefix}:{rate_key}:{index}"
         tr = redis.multi_exec()
         tr.incrby(key, 1)
         tr.pttl(key)

@@ -2,6 +2,10 @@
 
 ## 0.1
 
+### 0.1.3
+
+- Support multiple rate strategy for one route. (#3)
+
 ### 0.1.2
 
 - Use milliseconds instead of seconds as default unit of expiration.

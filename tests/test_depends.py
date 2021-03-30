@@ -9,7 +9,6 @@ def test_limiter():
     with TestClient(app) as client:
         response = client.get("/")
         assert response.status_code == 200
-        assert response.json() == {"msg": "Hello World"}
 
         client.get("/")
 
@@ -19,4 +18,23 @@ def test_limiter():
 
         response = client.get("/")
         assert response.status_code == 200
-        assert response.json() == {"msg": "Hello World"}
+
+
+def test_limiter_multiple():
+    with TestClient(app) as client:
+        response = client.get("/multiple")
+        assert response.status_code == 200
+
+        response = client.get("/multiple")
+        assert response.status_code == 429
+        sleep(5)
+
+        response = client.get("/multiple")
+        assert response.status_code == 200
+
+        response = client.get("/multiple")
+        assert response.status_code == 429
+        sleep(10)
+
+        response = client.get("/multiple")
+        assert response.status_code == 200
