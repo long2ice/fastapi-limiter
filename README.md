@@ -23,7 +23,8 @@ Just install from pypi
 
 ## Quick Start
 
-FastAPI-Limiter is simple to use, which just provide a dependency `RateLimiter`, the following example allow `2` times request per `5` seconds in route `/`.
+FastAPI-Limiter is simple to use, which just provide a dependency `RateLimiter`, the following example allow `2` times
+request per `5` seconds in route `/`.
 
 ```py
 import aioredis
@@ -94,6 +95,24 @@ async def default_callback(request: Request, response: Response, pexpire: int):
         HTTP_429_TOO_MANY_REQUESTS, "Too Many Requests", headers={"Retry-After": str(expire)}
     )
 ```
+
+## Multiple limiters
+
+You can use multiple limiters in one route.
+
+```py
+@app.get(
+    "/multiple",
+    dependencies=[
+        Depends(RateLimiter(times=1, seconds=5)),
+        Depends(RateLimiter(times=2, seconds=15)),
+    ],
+)
+async def multiple():
+    return {"msg": "Hello World"}
+```
+
+Not that you should note the dependencies orders, keep lower of result of `seconds/times` at the first.
 
 ## License
 
