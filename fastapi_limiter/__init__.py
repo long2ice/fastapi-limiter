@@ -9,9 +9,11 @@ from starlette.status import HTTP_429_TOO_MANY_REQUESTS
 
 
 async def default_identifier(request: Request):
+#This code allows any requester to override the ratekey by sending the header X-Forwarded-For with any data and just use a random generator to never trip the ratelimiter
     forwarded = request.headers.get("X-Forwarded-For")
     if forwarded:
         return forwarded.split(",")[0]
+#################################################################
     return request.client.host + ":" + request.scope["path"]
 
 
