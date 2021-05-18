@@ -7,7 +7,7 @@
 
 ## Introduction
 
-FastAPI-Limiter is a rate limiting tool for [fastapi](https://github.com/tiangolo/fastapi) routes.
+FastAPI-Limiter is a rate limiting tool for [fastapi](https://github.com/tiangolo/fastapi) routes with lua script.
 
 ## Requirements
 
@@ -40,7 +40,7 @@ app = FastAPI()
 @app.on_event("startup")
 async def startup():
     redis = await aioredis.create_redis_pool("redis://localhost")
-    FastAPILimiter.init(redis)
+    await FastAPILimiter.init(redis)
 
 
 @app.get("/", dependencies=[Depends(RateLimiter(times=2, seconds=5))])
@@ -113,6 +113,29 @@ async def multiple():
 ```
 
 Not that you should note the dependencies orders, keep lower of result of `seconds/times` at the first.
+
+## Lua script
+
+The lua script used.
+
+```lua
+local key = KEYS[1]
+local limit = tonumber(ARGV[1])
+local expire_time = ARGV[2]
+
+local current = tonumber(redis.call('get', key) or "0")
+if current > 0 then
+    if current + 1 > limit then
+        return redis.call("PTTL", key)
+    else
+        redis.call("INCR", key)
+        return 0
+    end
+else
+    redis.call("SET", key, 1, "px", expire_time)
+    return 0
+end
+```
 
 ## License
 

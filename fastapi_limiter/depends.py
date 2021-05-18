@@ -39,11 +39,8 @@ class RateLimiter:
         redis = FastAPILimiter.redis
         rate_key = await identifier(request)
         key = f"{FastAPILimiter.prefix}:{rate_key}:{index}"
-        tr = redis.multi_exec()
-        tr.incrby(key, 1)
-        tr.pttl(key)
-        num, pexpire = await tr.execute()
-        if num == 1:
-            await redis.pexpire(key, self.milliseconds)
-        if num > self.times:
+        pexpire = await redis.evalsha(
+            FastAPILimiter.lua_sha, keys=[key], args=[self.times, self.milliseconds]
+        )
+        if pexpire != 0:
             return await callback(request, response, pexpire)

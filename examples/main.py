@@ -10,8 +10,13 @@ app = FastAPI()
 
 @app.on_event("startup")
 async def startup():
-    redis = await aioredis.create_redis_pool("redis://localhost")
-    FastAPILimiter.init(redis)
+    redis = await aioredis.create_redis_pool("redis://localhost", encoding="utf8")
+    await FastAPILimiter.init(redis)
+
+
+@app.on_event("shutdown")
+async def shutdown():
+    await FastAPILimiter.close()
 
 
 @app.get("/", dependencies=[Depends(RateLimiter(times=2, seconds=5))])
