@@ -5,7 +5,7 @@
 ### 0.1.4
 
 - Now use `lua` script.
-- **Break change**: You shoud call `FastAPILimiter.init` with `async`.
+- **Break change**: You shoud call `FastAPILimiter.init` with `await`.
 
 ```python
     await FastAPILimiter.init(redis)
