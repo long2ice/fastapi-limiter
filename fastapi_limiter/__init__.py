@@ -37,6 +37,7 @@ class FastAPILimiter:
     lua_sha: str = None
     identifier: Callable = None
     callback: Callable = None
+    enabled: bool = True
     lua_script = """local key = KEYS[1]
 local limit = tonumber(ARGV[1])
 local expire_time = ARGV[2]
@@ -61,14 +62,22 @@ end"""
         prefix: str = "fastapi-limiter",
         identifier: Callable = default_identifier,
         callback: Callable = default_callback,
+        enabled: bool = True
     ):
         cls.redis = redis
         cls.prefix = prefix
         cls.identifier = identifier
         cls.callback = callback
-        cls.lua_sha = await redis.script_load(cls.lua_script)
+        cls.enabled = enabled
+
+        if enabled:
+            cls.lua_sha = await redis.script_load(cls.lua_script)
+        else:
+            cls.lua_sha = None
 
     @classmethod
     async def close(cls):
-        cls.redis.close()
-        await cls.redis.wait_closed()
+        if cls.enabled:
+            cls.redis.close()
+            await cls.redis.wait_closed()
+        
