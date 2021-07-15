@@ -70,5 +70,4 @@ end"""
 
     @classmethod
     async def close(cls):
-        cls.redis.close()
-        await cls.redis.wait_closed()
+        await cls.redis.close()

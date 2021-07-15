@@ -2,10 +2,14 @@
 
 ## 0.1
 
+### 0.1.5
+
+- Update aioredis to 2.0. (#14)
+
 ### 0.1.4
 
 - Now use `lua` script.
-- **Break change**: You shoud call `FastAPILimiter.init` with `await`.
+- **Break change**: You should call `FastAPILimiter.init` with `await`.
 
 ```python
     await FastAPILimiter.init(redis)

@@ -40,7 +40,7 @@ class RateLimiter:
         rate_key = await identifier(request)
         key = f"{FastAPILimiter.prefix}:{rate_key}:{index}"
         pexpire = await redis.evalsha(
-            FastAPILimiter.lua_sha, keys=[key], args=[self.times, self.milliseconds]
+            FastAPILimiter.lua_sha, 1, key, str(self.times), str(self.milliseconds)
         )
         if pexpire != 0:
             return await callback(request, response, pexpire)
