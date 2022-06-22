@@ -15,7 +15,7 @@ repository = "https://github.com/long2ice/fastapi-limiter.git"
 version = "0.1.5"
 
 [tool.poetry.dependencies]
-aioredis = "^2.0"
+redis = "*"
 fastapi = "*"
 python = "^3.7"
 

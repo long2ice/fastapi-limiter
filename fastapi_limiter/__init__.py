@@ -1,7 +1,7 @@
 from math import ceil
 from typing import Callable
 
-import aioredis
+import redis.asyncio as redis
 from fastapi import HTTPException
 from starlette.requests import Request
 from starlette.responses import Response
@@ -32,7 +32,7 @@ async def default_callback(request: Request, response: Response, pexpire: int):
 
 
 class FastAPILimiter:
-    redis: aioredis.Redis = None
+    redis = None
     prefix: str = None
     lua_sha: str = None
     identifier: Callable = None
@@ -57,7 +57,7 @@ end"""
     @classmethod
     async def init(
         cls,
-        redis: aioredis.Redis,
+        redis,
         prefix: str = "fastapi-limiter",
         identifier: Callable = default_identifier,
         callback: Callable = default_callback,

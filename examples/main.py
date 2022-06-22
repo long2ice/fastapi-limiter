@@ -1,4 +1,4 @@
-import aioredis
+import redis.asyncio as redis
 import uvicorn
 from fastapi import Depends, FastAPI
 
@@ -10,8 +10,8 @@ app = FastAPI()
 
 @app.on_event("startup")
 async def startup():
-    redis = await aioredis.from_url("redis://localhost", encoding="utf8")
-    await FastAPILimiter.init(redis)
+    r = redis.from_url("redis://localhost", encoding="utf8")
+    await FastAPILimiter.init(r)
 
 
 @app.on_event("shutdown")
