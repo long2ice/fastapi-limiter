@@ -55,6 +55,8 @@ class RateLimiter:
 
 class WebSocketRateLimiter(RateLimiter):
     async def __call__(self, ws: WebSocket, context_key=""):
+        if not FastAPILimiter.redis:
+            raise Exception("You must call FastAPILimiter.init in startup event of fastapi!")
         identifier = self.identifier or FastAPILimiter.identifier
         rate_key = await identifier(ws)
         key = f"{FastAPILimiter.prefix}:ws:{rate_key}:{context_key}"
