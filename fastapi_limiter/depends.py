@@ -5,7 +5,7 @@ from starlette.requests import Request
 from starlette.responses import Response
 from starlette.websockets import WebSocket
 
-from fastapi_limiter import FastAPILimiter
+from fastapi_limiter import FastAPILimiter, WebSocketRateLimitException
 
 
 class RateLimiter:
@@ -52,9 +52,6 @@ class RateLimiter:
         if pexpire != 0:
             return await callback(request, response, pexpire)
 
-
-class WebSocketRateLimitException(Exception):
-    pass
 
 class WebSocketRateLimiter(RateLimiter):
     async def __call__(self, ws: WebSocket, context_key=""):

@@ -35,13 +35,13 @@ async def multiple():
     return {"msg": "Hello World"}
 
 @app.websocket("/ws")
-async def websocket_endpoint(websocket: WebSocket, ratelimit=Depends()):
+async def websocket_endpoint(websocket: WebSocket):
     await websocket.accept()
     ratelimit = WebSocketRateLimiter(times=1, seconds=5)
     while True:
         try: 
             data = await websocket.receive_text()
-            await ratelimit(websocket, context_key=data)
+            await ratelimit(websocket, context_key=data) # NB: context_key is optional
             await websocket.send_text(f"Hello, world")
         except WebSocketRateLimitException:
             await websocket.send_text(f"Hello again")

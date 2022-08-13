@@ -9,7 +9,8 @@ from starlette.websockets import WebSocket
 from starlette.status import HTTP_429_TOO_MANY_REQUESTS
 from typing import Union
 
-
+class WebSocketRateLimitException(Exception):
+    pass
 
 async def default_identifier(request: Union[Request, WebSocket]):
     forwarded = request.headers.get("X-Forwarded-For")
