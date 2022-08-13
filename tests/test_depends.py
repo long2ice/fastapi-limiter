@@ -46,7 +46,11 @@ def test_limiter_websockets():
             data = ws.receive_text()
             assert data == "Hello, world"
 
-            ws.send_text("Hi 2")
+            ws.send_text("Hi")
+            data = ws.receive_text()
             assert data == "Hello again"
 
+            ws.send_text("Hi 2")
+            data = ws.receive_text()
+            assert data == "Hello, world"
             ws.close()

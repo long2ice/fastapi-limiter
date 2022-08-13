@@ -3,7 +3,7 @@ import uvicorn
 from fastapi import Depends, FastAPI, WebSocket
 
 from fastapi_limiter import FastAPILimiter
-from fastapi_limiter.depends import RateLimiter, WebSocketRateLimiter
+from fastapi_limiter.depends import RateLimiter, WebSocketRateLimiter, WebSocketRateLimitException
 
 app = FastAPI()
 
@@ -35,16 +35,16 @@ async def multiple():
     return {"msg": "Hello World"}
 
 @app.websocket("/ws")
-async def websocket_endpoint(websocket: WebSocket):
+async def websocket_endpoint(websocket: WebSocket, ratelimit=Depends()):
     await websocket.accept()
     ratelimit = WebSocketRateLimiter(times=1, seconds=5)
     while True:
-        limited = await ratelimit()
-        data = await websocket.receive_text()
-        if limited: 
-            await websocket.send_text(f"Hello again")
-        else:
+        try: 
+            data = await websocket.receive_text()
+            await ratelimit(websocket, context_key=data)
             await websocket.send_text(f"Hello, world")
+        except WebSocketRateLimitException:
+            await websocket.send_text(f"Hello again")
 
 if __name__ == "__main__":
     uvicorn.run("main:app", debug=True, reload=True)
