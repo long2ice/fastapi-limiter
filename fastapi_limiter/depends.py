@@ -44,3 +44,7 @@ class RateLimiter:
         )
         if pexpire != 0:
             return await callback(request, response, pexpire)
+
+class WebSocketRateLimiter(RateLimiter):
+        async def __call__(self):
+            pass

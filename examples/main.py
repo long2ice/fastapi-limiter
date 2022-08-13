@@ -1,9 +1,9 @@
 import redis.asyncio as redis
 import uvicorn
-from fastapi import Depends, FastAPI
+from fastapi import Depends, FastAPI, WebSocket
 
 from fastapi_limiter import FastAPILimiter
-from fastapi_limiter.depends import RateLimiter
+from fastapi_limiter.depends import RateLimiter, WebSocketRateLimiter
 
 app = FastAPI()
 
@@ -34,6 +34,17 @@ async def index():
 async def multiple():
     return {"msg": "Hello World"}
 
+@app.websocket("/ws")
+async def websocket_endpoint(websocket: WebSocket):
+    await websocket.accept()
+    ratelimit = WebSocketRateLimiter(times=1, seconds=5)
+    while True:
+        limited = await ratelimit()
+        data = await websocket.receive_text()
+        if limited: 
+            await websocket.send_text(f"Hello again")
+        else:
+            await websocket.send_text(f"Hello, world")
 
 if __name__ == "__main__":
     uvicorn.run("main:app", debug=True, reload=True)
