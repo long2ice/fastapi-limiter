@@ -114,6 +114,30 @@ async def multiple():
 
 Not that you should note the dependencies orders, keep lower of result of `seconds/times` at the first.
 
+## Rate limiting within a websocket.
+
+While the above examples work with rest requests, FastAPI also allows easy usage
+of websockets, which require a slightly different approach.
+
+Because websockets are likely to be long lived, you may want to rate limit in
+response to data sent over the socket.
+
+You can do this by rate limiting within the body of the websocket handler:
+
+```py
+@app.websocket("/ws")
+async def websocket_endpoint(websocket: WebSocket):
+    await websocket.accept()
+    ratelimit = WebSocketRateLimiter(times=1, seconds=5)
+    while True:
+        try:
+            data = await websocket.receive_text()
+            await ratelimit(websocket, context_key=data) # NB: context_key is optional
+            await websocket.send_text(f"Hello, world")
+        except WebSocketRateLimitException: # Thrown when rate limit exceeded.
+            await websocket.send_text(f"Hello again")
+```
+
 ## Lua script
 
 The lua script used.

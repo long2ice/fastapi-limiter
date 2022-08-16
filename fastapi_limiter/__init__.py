@@ -5,10 +5,14 @@ import redis.asyncio as redis
 from fastapi import HTTPException
 from starlette.requests import Request
 from starlette.responses import Response
+from starlette.websockets import WebSocket
 from starlette.status import HTTP_429_TOO_MANY_REQUESTS
+from typing import Union
 
+class WebSocketRateLimitException(Exception):
+    pass
 
-async def default_identifier(request: Request):
+async def default_identifier(request: Union[Request, WebSocket]):
     forwarded = request.headers.get("X-Forwarded-For")
     if forwarded:
         ip = forwarded.split(",")[0]
