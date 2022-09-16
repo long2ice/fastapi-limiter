@@ -27,7 +27,7 @@ FastAPI-Limiter is simple to use, which just provide a dependency `RateLimiter`,
 request per `5` seconds in route `/`.
 
 ```py
-import aioredis
+import redis.asyncio as redis
 import uvicorn
 from fastapi import Depends, FastAPI
 
@@ -39,7 +39,7 @@ app = FastAPI()
 
 @app.on_event("startup")
 async def startup():
-    redis = await aioredis.from_url("redis://localhost", encoding="utf-8", decode_responses=True)
+    redis = redis.from_url("redis://localhost", encoding="utf-8", decode_responses=True)
     await FastAPILimiter.init(redis)
 
 
@@ -132,9 +132,9 @@ async def websocket_endpoint(websocket: WebSocket):
     while True:
         try:
             data = await websocket.receive_text()
-            await ratelimit(websocket, context_key=data) # NB: context_key is optional
+            await ratelimit(websocket, context_key=data)  # NB: context_key is optional
             await websocket.send_text(f"Hello, world")
-        except WebSocketRateLimitException: # Thrown when rate limit exceeded.
+        except WebSocketRateLimitException:  # Thrown when rate limit exceeded.
             await websocket.send_text(f"Hello again")
 ```
 

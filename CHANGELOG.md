@@ -4,7 +4,7 @@
 
 ### 0.1.5
 
-- Update aioredis to 2.0. (#14)
+- Replace aioredis to redis.
 
 ### 0.1.4
 

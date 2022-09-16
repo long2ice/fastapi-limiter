@@ -39,6 +39,7 @@ def test_limiter_multiple():
         response = client.get("/multiple")
         assert response.status_code == 200
 
+
 def test_limiter_websockets():
     with TestClient(app) as client:
         with client.websocket_connect("/ws") as ws:

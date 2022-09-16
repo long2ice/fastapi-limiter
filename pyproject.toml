@@ -8,14 +8,14 @@ keywords = ["fastapi", "limiter"]
 license = "Apache2.0"
 name = "fastapi-limiter"
 packages = [
-  {include = "fastapi_limiter"},
+    { include = "fastapi_limiter" },
 ]
 readme = "README.md"
 repository = "https://github.com/long2ice/fastapi-limiter.git"
 version = "0.1.5"
 
 [tool.poetry.dependencies]
-redis = "*"
+redis = "^4.2.0rc1"
 fastapi = "*"
 python = "^3.7"
 

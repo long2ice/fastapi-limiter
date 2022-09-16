@@ -1,16 +1,12 @@
 from math import ceil
-from typing import Callable
+from typing import Callable, Union
 
-import redis.asyncio as redis
 from fastapi import HTTPException
 from starlette.requests import Request
 from starlette.responses import Response
-from starlette.websockets import WebSocket
 from starlette.status import HTTP_429_TOO_MANY_REQUESTS
-from typing import Union
+from starlette.websockets import WebSocket
 
-class WebSocketRateLimitException(Exception):
-    pass
 
 async def default_identifier(request: Union[Request, WebSocket]):
     forwarded = request.headers.get("X-Forwarded-For")
@@ -21,7 +17,7 @@ async def default_identifier(request: Union[Request, WebSocket]):
     return ip + ":" + request.scope["path"]
 
 
-async def default_callback(request: Request, response: Response, pexpire: int):
+async def http_default_callback(request: Request, response: Response, pexpire: int):
     """
     default callback when too many requests
     :param request:
@@ -35,12 +31,26 @@ async def default_callback(request: Request, response: Response, pexpire: int):
     )
 
 
+async def ws_default_callback(ws: WebSocket, pexpire: int):
+    """
+    default callback when too many requests
+    :param ws:
+    :param pexpire: The remaining milliseconds
+    :return:
+    """
+    expire = ceil(pexpire / 1000)
+    raise HTTPException(
+        HTTP_429_TOO_MANY_REQUESTS, "Too Many Requests", headers={"Retry-After": str(expire)}
+    )
+
+
 class FastAPILimiter:
     redis = None
     prefix: str = None
     lua_sha: str = None
     identifier: Callable = None
-    callback: Callable = None
+    http_callback: Callable = None
+    ws_callback: Callable = None
     lua_script = """local key = KEYS[1]
 local limit = tonumber(ARGV[1])
 local expire_time = ARGV[2]
@@ -64,12 +74,14 @@ end"""
         redis,
         prefix: str = "fastapi-limiter",
         identifier: Callable = default_identifier,
-        callback: Callable = default_callback,
+        http_callback: Callable = http_default_callback,
+        ws_callback: Callable = ws_default_callback,
     ):
         cls.redis = redis
         cls.prefix = prefix
         cls.identifier = identifier
-        cls.callback = callback
+        cls.http_callback = http_callback
+        cls.ws_callback = ws_callback
         cls.lua_sha = await redis.script_load(cls.lua_script)
 
     @classmethod

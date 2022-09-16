@@ -5,7 +5,7 @@ from starlette.requests import Request
 from starlette.responses import Response
 from starlette.websockets import WebSocket
 
-from fastapi_limiter import FastAPILimiter, WebSocketRateLimitException
+from fastapi_limiter import FastAPILimiter
 
 
 class RateLimiter:
@@ -31,7 +31,6 @@ class RateLimiter:
         )
         return pexpire
 
-
     async def __call__(self, request: Request, response: Response):
         if not FastAPILimiter.redis:
             raise Exception("You must call FastAPILimiter.init in startup event of fastapi!")
@@ -45,7 +44,7 @@ class RateLimiter:
 
         # moved here because constructor run before app startup
         identifier = self.identifier or FastAPILimiter.identifier
-        callback = self.callback or FastAPILimiter.callback
+        callback = self.callback or FastAPILimiter.http_callback
         rate_key = await identifier(request)
         key = f"{FastAPILimiter.prefix}:{rate_key}:{index}"
         pexpire = await self._check(key)
@@ -61,6 +60,6 @@ class WebSocketRateLimiter(RateLimiter):
         rate_key = await identifier(ws)
         key = f"{FastAPILimiter.prefix}:ws:{rate_key}:{context_key}"
         pexpire = await self._check(key)
+        callback = self.callback or FastAPILimiter.ws_callback
         if pexpire != 0:
-            raise WebSocketRateLimitException() 
-
+            return await callback(ws, pexpire)
