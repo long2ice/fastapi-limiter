@@ -20,7 +20,12 @@ async def shutdown():
 
 
 @app.get("/", dependencies=[Depends(RateLimiter(times=2, seconds=5))])
-async def index():
+async def index_get():
+    return {"msg": "Hello World"}
+
+
+@app.post("/", dependencies=[Depends(RateLimiter(times=1, seconds=5))])
+async def index_post():
     return {"msg": "Hello World"}
 
 
