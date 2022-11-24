@@ -10,13 +10,23 @@ def test_limiter():
         response = client.get("/")
         assert response.status_code == 200
 
-        client.get("/")
+        response = client.get("/")
+        assert response.status_code == 200
 
         response = client.get("/")
+        assert response.status_code == 429
+
+        response = client.post("/")
+        assert response.status_code == 200
+
+        response = client.post("/")
         assert response.status_code == 429
         sleep(5)
 
         response = client.get("/")
+        assert response.status_code == 200
+
+        response = client.post("/")
         assert response.status_code == 200
 
 
