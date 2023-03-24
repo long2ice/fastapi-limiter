@@ -1,5 +1,5 @@
 from math import ceil
-from typing import Callable, Union
+from typing import Callable, Union, List
 
 from fastapi import HTTPException
 from starlette.requests import Request
@@ -48,6 +48,7 @@ class FastAPILimiter:
     redis = None
     prefix: str = None
     lua_sha: str = None
+    whitelist: List
     identifier: Callable = None
     http_callback: Callable = None
     ws_callback: Callable = None
@@ -73,12 +74,14 @@ end"""
         cls,
         redis,
         prefix: str = "fastapi-limiter",
+        whitelist: List = [],
         identifier: Callable = default_identifier,
         http_callback: Callable = http_default_callback,
         ws_callback: Callable = ws_default_callback,
     ):
         cls.redis = redis
         cls.prefix = prefix
+        cls.whitelist = whitelist
         cls.identifier = identifier
         cls.http_callback = http_callback
         cls.ws_callback = ws_callback
