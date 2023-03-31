@@ -4,6 +4,7 @@ from pydantic import conint
 from starlette.requests import Request
 from starlette.responses import Response
 from starlette.websockets import WebSocket
+import redis as pyredis
 
 from fastapi_limiter import FastAPILimiter
 
@@ -49,7 +50,11 @@ class RateLimiter:
         callback = self.callback or FastAPILimiter.http_callback
         rate_key = await identifier(request)
         key = f"{FastAPILimiter.prefix}:{rate_key}:{route_index}:{dep_index}"
-        pexpire = await self._check(key)
+        try:
+            pexpire = await self._check(key)
+        except pyredis.exceptions.NoScriptError:
+            await FastAPILimiter.init(FastAPILimiter.redis)
+            pexpire = await self._check(key)
         if pexpire != 0:
             return await callback(request, response, pexpire)
 
