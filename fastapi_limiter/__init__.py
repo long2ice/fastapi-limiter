@@ -48,7 +48,7 @@ class FastAPILimiter:
     redis = None
     prefix: str = None
     lua_sha: str = None
-    whitelist: List
+    whitelist: List = None
     identifier: Callable = None
     http_callback: Callable = None
     ws_callback: Callable = None
@@ -74,7 +74,7 @@ end"""
         cls,
         redis,
         prefix: str = "fastapi-limiter",
-        whitelist: List = [],
+        whitelist: List = None,
         identifier: Callable = default_identifier,
         http_callback: Callable = http_default_callback,
         ws_callback: Callable = ws_default_callback,
