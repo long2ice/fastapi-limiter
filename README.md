@@ -69,11 +69,13 @@ Prefix of redis key.
 Identifier of route limit, default is `ip`, you can override it such as `userid` and so on.
 
 ```py
-async def default_identifier(request: Request):
+async def default_identifier(request: Union[Request, WebSocket]):
     forwarded = request.headers.get("X-Forwarded-For")
     if forwarded:
-        return forwarded.split(",")[0]
-    return request.client.host + ":" + request.scope["path"]
+        ip = forwarded.split(",")[0]
+    else:
+        ip = request.client.host
+    return ip + ":" + request.scope["path"]
 ```
 
 ### callback
