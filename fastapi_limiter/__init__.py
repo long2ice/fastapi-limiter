@@ -76,7 +76,7 @@ end"""
         identifier: Callable = default_identifier,
         http_callback: Callable = http_default_callback,
         ws_callback: Callable = ws_default_callback,
-    ):
+    ) -> None:
         cls.redis = redis
         cls.prefix = prefix
         cls.identifier = identifier
@@ -85,5 +85,5 @@ end"""
         cls.lua_sha = await redis.script_load(cls.lua_script)
 
     @classmethod
-    async def close(cls):
+    async def close(cls) -> None:
         await cls.redis.close()
