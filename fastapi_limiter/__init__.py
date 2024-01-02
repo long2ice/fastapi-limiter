@@ -1,5 +1,5 @@
 from math import ceil
-from typing import Callable, Union
+from typing import Callable, Optional, Union
 
 from fastapi import HTTPException
 from starlette.requests import Request
@@ -46,11 +46,11 @@ async def ws_default_callback(ws: WebSocket, pexpire: int):
 
 class FastAPILimiter:
     redis = None
-    prefix: str = None
-    lua_sha: str = None
-    identifier: Callable = None
-    http_callback: Callable = None
-    ws_callback: Callable = None
+    prefix: Optional[str] = None
+    lua_sha: Optional[str] = None
+    identifier: Optional[Callable] = None
+    http_callback: Optional[Callable] = None
+    ws_callback: Optional[Callable] = None
     lua_script = """local key = KEYS[1]
 local limit = tonumber(ARGV[1])
 local expire_time = ARGV[2]
@@ -76,7 +76,7 @@ end"""
         identifier: Callable = default_identifier,
         http_callback: Callable = http_default_callback,
         ws_callback: Callable = ws_default_callback,
-    ):
+    ) -> None:
         cls.redis = redis
         cls.prefix = prefix
         cls.identifier = identifier
@@ -85,5 +85,5 @@ end"""
         cls.lua_sha = await redis.script_load(cls.lua_script)
 
     @classmethod
-    async def close(cls):
+    async def close(cls) -> None:
         await cls.redis.close()

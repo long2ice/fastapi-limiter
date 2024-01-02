@@ -1,6 +1,6 @@
-from typing import Callable, Optional
+from typing import Annotated, Callable, Optional
 
-from pydantic import conint
+from pydantic import Field
 from starlette.requests import Request
 from starlette.responses import Response
 from starlette.websockets import WebSocket
@@ -12,11 +12,11 @@ from fastapi_limiter import FastAPILimiter
 class RateLimiter:
     def __init__(
         self,
-        times: conint(ge=0) = 1,
-        milliseconds: conint(ge=-1) = 0,
-        seconds: conint(ge=-1) = 0,
-        minutes: conint(ge=-1) = 0,
-        hours: conint(ge=-1) = 0,
+        times: Annotated[int, Field(ge=0)] = 1,
+        milliseconds: Annotated[int, Field(ge=-1)] = 0,
+        seconds: Annotated[int, Field(ge=-1)] = 0,
+        minutes: Annotated[int, Field(ge=-1)] = 0,
+        hours: Annotated[int, Field(ge=-1)] = 0,
         identifier: Optional[Callable] = None,
         callback: Optional[Callable] = None,
     ):
