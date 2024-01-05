@@ -1,10 +1,12 @@
+from contextlib import asynccontextmanager
+
 import redis.asyncio as redis
 import uvicorn
-from contextlib import asynccontextmanager
 from fastapi import Depends, FastAPI, HTTPException, WebSocket
 
 from fastapi_limiter import FastAPILimiter
 from fastapi_limiter.depends import RateLimiter, WebSocketRateLimiter
+
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
