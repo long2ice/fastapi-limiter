@@ -19,7 +19,8 @@ redis = ">=4.2.0rc1"
 fastapi = "*"
 python = "^3.7"
 
-[tool.poetry.dev-dependencies]
+[tool.poetry.group.dev.dependencies]
+uvicorn = "*"
 bandit = "*"
 black = "*"
 flake8 = "*"
@@ -28,7 +29,6 @@ pytest = "*"
 pytest-asyncio = "*"
 pytest-mock = "*"
 pytest-xdist = "*"
-uvicorn = "*"
 requests = "*"
 
 [build-system]
