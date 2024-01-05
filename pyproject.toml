@@ -17,7 +17,7 @@ version = "0.1.6"
 [tool.poetry.dependencies]
 redis = ">=4.2.0rc1"
 fastapi = "*"
-python = "^3.7"
+python = "^3.9"
 
 [tool.poetry.group.dev.dependencies]
 uvicorn = "*"
@@ -30,6 +30,7 @@ pytest-asyncio = "*"
 pytest-mock = "*"
 pytest-xdist = "*"
 requests = "*"
+httpx = "*"
 
 [build-system]
 build-backend = "poetry.core.masonry.api"
