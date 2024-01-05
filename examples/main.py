@@ -1,22 +1,20 @@
 import redis.asyncio as redis
 import uvicorn
+from contextlib import asynccontextmanager
 from fastapi import Depends, FastAPI, HTTPException, WebSocket
 
 from fastapi_limiter import FastAPILimiter
 from fastapi_limiter.depends import RateLimiter, WebSocketRateLimiter
 
-app = FastAPI()
-
-
-@app.on_event("startup")
-async def startup():
-    r = redis.from_url("redis://localhost", encoding="utf8")
-    await FastAPILimiter.init(r)
-
-
-@app.on_event("shutdown")
-async def shutdown():
+@asynccontextmanager
+async def lifespan(_: FastAPI):
+    redis_connection = redis.from_url("redis://localhost:6379", encoding="utf8")
+    await FastAPILimiter.init(redis_connection)
+    yield
     await FastAPILimiter.close()
+
+
+app = FastAPI(lifespan=lifespan)
 
 
 @app.get("/", dependencies=[Depends(RateLimiter(times=2, seconds=5))])
