@@ -39,8 +39,8 @@ app = FastAPI()
 
 @app.on_event("startup")
 async def startup():
-    redis = redis.from_url("redis://localhost", encoding="utf-8", decode_responses=True)
-    await FastAPILimiter.init(redis)
+    redis_connection = redis.from_url("redis://localhost", encoding="utf-8", decode_responses=True)
+    await FastAPILimiter.init(redis_connection)
 
 
 @app.get("/", dependencies=[Depends(RateLimiter(times=2, seconds=5))])
