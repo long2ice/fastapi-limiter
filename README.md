@@ -29,19 +29,20 @@ request per `5` seconds in route `/`.
 ```py
 import redis.asyncio as redis
 import uvicorn
+from contextlib import asynccontextmanager
 from fastapi import Depends, FastAPI
 
 from fastapi_limiter import FastAPILimiter
 from fastapi_limiter.depends import RateLimiter
 
-app = FastAPI()
-
-
-@app.on_event("startup")
-async def startup():
-    redis_connection = redis.from_url("redis://localhost", encoding="utf-8", decode_responses=True)
+@asynccontextmanager
+async def lifespan(_: FastAPI):
+    redis_connection = redis.from_url("redis://localhost:6379", encoding="utf8")
     await FastAPILimiter.init(redis_connection)
+    yield
+    await FastAPILimiter.close()
 
+app = FastAPI(lifespan=lifespan)
 
 @app.get("/", dependencies=[Depends(RateLimiter(times=2, seconds=5))])
 async def index():
