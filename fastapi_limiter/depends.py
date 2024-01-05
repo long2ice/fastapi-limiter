@@ -60,6 +60,14 @@ class RateLimiter:
         if pexpire != 0:
             return await callback(request, response, pexpire)
 
+    def __hash__(self) -> int:
+        return hash(f"limiter-{(self.times, self.milliseconds)}")
+
+    def __eq__(self, other: object) -> bool:
+        if isinstance(other, RateLimiter):
+            return (self.times, self.milliseconds) == (other.times, other.milliseconds)
+        return False
+
 
 class WebSocketRateLimiter(RateLimiter):
     async def __call__(self, ws: WebSocket, context_key=""):
