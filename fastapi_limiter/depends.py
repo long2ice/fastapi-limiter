@@ -1,10 +1,10 @@
 from typing import Annotated, Callable, Optional
 
+import redis as pyredis
 from pydantic import Field
 from starlette.requests import Request
 from starlette.responses import Response
 from starlette.websockets import WebSocket
-import redis as pyredis
 
 from fastapi_limiter import FastAPILimiter
 
