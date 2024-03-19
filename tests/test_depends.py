@@ -65,3 +65,12 @@ def test_limiter_websockets():
             data = ws.receive_text()
             assert data == "Hello, world"
             ws.close()
+
+
+def test_unlimited():
+    with TestClient(app) as client:
+        response = client.get("/unlimited")
+        assert response.status_code == 200
+
+        response = client.get("/unlimited")
+        assert response.status_code == 200
