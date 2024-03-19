@@ -26,6 +26,8 @@ class RateLimiter:
         self.callback = callback
 
     async def _check(self, key):
+        if self.milliseconds <= 0:
+            return 0
         redis = FastAPILimiter.redis
         pexpire = await redis.evalsha(
             FastAPILimiter.lua_sha, 1, key, str(self.times), str(self.milliseconds)

@@ -40,6 +40,11 @@ async def multiple():
     return {"msg": "Hello World"}
 
 
+@app.get("/unlimited", dependencies=[Depends(RateLimiter())])
+async def unlimited():
+    return {"msg": "Hello World"}
+
+
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
     await websocket.accept()
