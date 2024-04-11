@@ -6,6 +6,7 @@ from starlette.requests import Request
 from starlette.responses import Response
 from starlette.status import HTTP_429_TOO_MANY_REQUESTS
 from starlette.websockets import WebSocket
+from fastapi_limiter.constants import LuaScript
 
 
 async def default_identifier(request: Union[Request, WebSocket]):
@@ -51,22 +52,8 @@ class FastAPILimiter:
     identifier: Optional[Callable] = None
     http_callback: Optional[Callable] = None
     ws_callback: Optional[Callable] = None
-    lua_script = """local key = KEYS[1]
-local limit = tonumber(ARGV[1])
-local expire_time = ARGV[2]
-
-local current = tonumber(redis.call('get', key) or "0")
-if current > 0 then
- if current + 1 > limit then
- return redis.call("PTTL",key)
- else
-        redis.call("INCR", key)
- return 0
- end
-else
-    redis.call("SET", key, 1,"px",expire_time)
- return 0
-end"""
+    lua_sha_fix_window: Optional[str] = None
+    lua_sha_sliding_window: Optional[str] = None
 
     @classmethod
     async def init(
@@ -82,7 +69,8 @@ end"""
         cls.identifier = identifier
         cls.http_callback = http_callback
         cls.ws_callback = ws_callback
-        cls.lua_sha = await redis.script_load(cls.lua_script)
+        cls.lua_sha_fix_window = await redis.script_load(LuaScript.FIXED_WINDOW_LIMIT_SCRIPT.value)
+        cls.lua_sha_sliding_window = await redis.script_load(LuaScript.SLIDING_WINDOW_LIMIT_SCRIPT.value)
 
     @classmethod
     async def close(cls) -> None:

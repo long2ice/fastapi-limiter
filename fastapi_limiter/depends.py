@@ -7,6 +7,7 @@ from starlette.responses import Response
 from starlette.websockets import WebSocket
 
 from fastapi_limiter import FastAPILimiter
+from fastapi_limiter.constants import RateLimitType
 
 
 class RateLimiter:
@@ -19,16 +20,30 @@ class RateLimiter:
         hours: Annotated[int, Field(ge=-1)] = 0,
         identifier: Optional[Callable] = None,
         callback: Optional[Callable] = None,
+        rate_limit_type: RateLimitType = RateLimitType.FIXED_WINDOW
     ):
         self.times = times
         self.milliseconds = milliseconds + 1000 * seconds + 60000 * minutes + 3600000 * hours
         self.identifier = identifier
         self.callback = callback
+        self.rate_limit_type = rate_limit_type
 
-    async def _check(self, key):
+    def _get_lua_sha(self, specific_lua_sha=None):
+        if specific_lua_sha:
+            return specific_lua_sha
+        elif self.rate_limit_type is RateLimitType.SLIDING_WINDOW:
+            return FastAPILimiter.lua_sha_sliding_window
+        return FastAPILimiter.lua_sha_fix_window
+
+
+    async def _check(self, key, specific_lua_sha=None):
         redis = FastAPILimiter.redis
         pexpire = await redis.evalsha(
-            FastAPILimiter.lua_sha, 1, key, str(self.times), str(self.milliseconds)
+            self._get_lua_sha(specific_lua_sha), 
+            1, 
+            key, 
+            str(self.times), 
+            str(self.milliseconds)
         )
         return pexpire
 
@@ -53,10 +68,7 @@ class RateLimiter:
         try:
             pexpire = await self._check(key)
         except pyredis.exceptions.NoScriptError:
-            FastAPILimiter.lua_sha = await FastAPILimiter.redis.script_load(
-                FastAPILimiter.lua_script
-            )
-            pexpire = await self._check(key)
+            pexpire = await self._check(key, specific_lua_sha=FastAPILimiter.lua_sha_fix_window)
         if pexpire != 0:
             return await callback(request, response, pexpire)
 

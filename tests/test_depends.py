@@ -65,3 +65,20 @@ def test_limiter_websockets():
             data = ws.receive_text()
             assert data == "Hello, world"
             ws.close()
+
+
+def test_limiter_sliding_window():
+    with TestClient(app) as client:
+        def req(sleep_times, assert_code):
+            nonlocal client
+            response = client.get("/test_sliding_window")
+            assert response.status_code == assert_code
+            sleep(sleep_times)
+        
+        req(4, 200) # 0s
+        req(1, 200) # 4s
+        req(1, 200) # 5s
+        req(1, 429) # 6s
+        req(1, 429) # 7s
+        req(1, 429) # 8s
+        req(1, 200) # 9s

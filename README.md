@@ -143,6 +143,7 @@ async def websocket_endpoint(websocket: WebSocket):
 
 The lua script used.
 
+### fixed window
 ```lua
 local key = KEYS[1]
 local limit = tonumber(ARGV[1])
@@ -158,6 +159,27 @@ if current > 0 then
     end
 else
     redis.call("SET", key, 1, "px", expire_time)
+    return 0
+end
+```
+
+### sliding window
+```lua
+local key = KEYS[1]
+local limit = tonumber(ARGV[1])
+local expire_time = tonumber(ARGV[2])
+local current_time = redis.call('TIME')[1]
+local start_time = current_time - expire_time / 1000
+
+redis.call('ZREMRANGEBYSCORE', key, 0, start_time)
+
+local current = redis.call('ZCARD', key)
+
+if current >= limit then
+    return redis.call("PTTL",key)
+else
+    redis.call("ZADD", key, current_time, current_time)
+    redis.call('PEXPIRE', key, expire_time)
     return 0
 end
 ```

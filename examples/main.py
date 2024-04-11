@@ -6,7 +6,7 @@ from fastapi import Depends, FastAPI, HTTPException, WebSocket
 
 from fastapi_limiter import FastAPILimiter
 from fastapi_limiter.depends import RateLimiter, WebSocketRateLimiter
-
+from fastapi_limiter.constants import RateLimitType
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
@@ -51,6 +51,15 @@ async def websocket_endpoint(websocket: WebSocket):
             await websocket.send_text("Hello, world")
         except HTTPException:
             await websocket.send_text("Hello again")
+
+@app.get(
+    "/test_sliding_window", 
+    dependencies=[
+        Depends(RateLimiter(times=2, seconds=5, rate_limit_type=RateLimitType.SLIDING_WINDOW))
+    ],
+)
+async def test_sliding_window():
+    return {"msg": "Hello World"}
 
 
 if __name__ == "__main__":

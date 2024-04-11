@@ -12,7 +12,7 @@ packages = [
 ]
 readme = "README.md"
 repository = "https://github.com/long2ice/fastapi-limiter.git"
-version = "0.1.6"
+version = "0.1.7"
 
 [tool.poetry.dependencies]
 redis = ">=4.2.0rc1"
