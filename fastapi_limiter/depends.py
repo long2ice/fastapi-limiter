@@ -38,7 +38,11 @@ class RateLimiter:
         route_index = 0
         dep_index = 0
         for i, route in enumerate(request.app.routes):
-            if route.path == request.scope["path"] and request.method in route.methods:
+            if (
+                route.path == request.scope["path"]
+                and hasattr(route, "methods")
+                and request.method in route.methods
+            ):
                 route_index = i
                 for j, dependency in enumerate(route.dependencies):
                     if self is dependency.dependency:
