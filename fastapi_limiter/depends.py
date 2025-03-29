@@ -1,4 +1,5 @@
 from typing import Annotated, Callable, Optional
+import time
 
 import redis as pyredis
 from pydantic import Field
@@ -19,17 +20,38 @@ class RateLimiter:
         hours: Annotated[int, Field(ge=-1)] = 0,
         identifier: Optional[Callable] = None,
         callback: Optional[Callable] = None,
+        circuit_breaker: Optional[tuple[int, int]] = None,
     ):
         self.times = times
         self.milliseconds = milliseconds + 1000 * seconds + 60000 * minutes + 3600000 * hours
         self.identifier = identifier
         self.callback = callback
+        self.circuit_breaker = circuit_breaker is not None
+        self.failure_threshold = circuit_breaker[0] if circuit_breaker else None
+        self.recovery_seconds = circuit_breaker[1] if circuit_breaker else None
+        self._failure_count = 0
+        self._circuitbreaker_timeout = 0
+
 
     async def _check(self, key):
         redis = FastAPILimiter.redis
-        pexpire = await redis.evalsha(
-            FastAPILimiter.lua_sha, 1, key, str(self.times), str(self.milliseconds)
-        )
+        if time.time() < self._circuitbreaker_timeout:
+            return 0
+        
+        try:
+            pexpire = await redis.evalsha(
+                FastAPILimiter.lua_sha, 1, key, str(self.times), str(self.milliseconds)
+            )
+        except pyredis.exceptions.ConnectionError:
+            if self.circuit_breaker:
+                self._failure_count += 1
+                if self._failure_count >= self.failure_threshold:
+                    self._circuitbreaker_timeout = time.time() + self.recovery_seconds
+                    return 0
+            raise
+        else:
+            self._failure_count = 0
+            
         return pexpire
 
     async def __call__(self, request: Request, response: Response):

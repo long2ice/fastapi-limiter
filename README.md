@@ -115,6 +115,19 @@ async def multiple():
 
 Not that you should note the dependencies orders, keep lower of result of `seconds/times` at the first.
 
+## Circuit breaker
+In order to avoid errors when redis is unavailable, you can apply a circuitbreaker to a RateLimiter instance. The `circuitbreaker` parameter accepts a tuple of `(max_failures, recovery_timeout)` and if enabled, after reaching the maximum amount of failures, the rate limiting will be disabled and redis usage will be tried again only after the timeout.
+
+```py
+@app.get(
+    "/circuit-breaker", 
+    dependencies=[Depends(RateLimiter(times=1, seconds=5, circuit_breaker=(2, 5)))])
+async def circuit_breaker():
+    return {"msg": "Hello World"}
+# This example will stop ratelimiting on the second connection error,
+# and retry after 5 seconds.
+```
+
 ## Rate limiting within a websocket.
 
 While the above examples work with rest requests, FastAPI also allows easy usage

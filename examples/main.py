@@ -40,6 +40,14 @@ async def multiple():
     return {"msg": "Hello World"}
 
 
+@app.get(
+    "/circuit-breaker",
+    dependencies=[Depends(RateLimiter(times=1, seconds=5, circuit_breaker=(2, 5)))],
+)
+async def circuit_breaker():
+    return {"msg": "Hello World"}
+
+
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
     await websocket.accept()
