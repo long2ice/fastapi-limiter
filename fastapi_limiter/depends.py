@@ -35,21 +35,13 @@ class RateLimiter:
     async def __call__(self, request: Request, response: Response):
         if not FastAPILimiter.redis:
             raise Exception("You must call FastAPILimiter.init in startup event of fastapi!")
-        route_index = 0
-        dep_index = 0
-        for i, route in enumerate(request.app.routes):
-            if route.path == request.scope["path"] and request.method in route.methods:
-                route_index = i
-                for j, dependency in enumerate(route.dependencies):
-                    if self is dependency.dependency:
-                        dep_index = j
-                        break
 
         # moved here because constructor run before app startup
         identifier = self.identifier or FastAPILimiter.identifier
         callback = self.callback or FastAPILimiter.http_callback
         rate_key = await identifier(request)
-        key = f"{FastAPILimiter.prefix}:{rate_key}:{route_index}:{dep_index}"
+        route_path = request.scope["path"]
+        key = f"{FastAPILimiter.prefix}:{rate_key}:{route_path}"
         try:
             pexpire = await self._check(key)
         except pyredis.exceptions.NoScriptError:
