@@ -7,6 +7,11 @@ from starlette.responses import Response
 from starlette.status import HTTP_429_TOO_MANY_REQUESTS
 from starlette.websockets import WebSocket
 
+try:
+    from importlib.metadata import version as get_version
+except ImportError:
+    from importlib_metadata import version as get_version
+
 
 async def default_identifier(request: Union[Request, WebSocket]):
     forwarded = request.headers.get("X-Forwarded-For")
@@ -69,6 +74,47 @@ else
 end"""
 
     @classmethod
+    def _add_driver_info(cls, redis) -> None:
+        """Add driver identification to Redis connection.
+
+        Uses DriverInfo class if available, or falls back to
+        lib_name/lib_version for older versions.
+        """
+        from typing import Any
+
+        # Get fastapi-limiter version
+        try:
+            limiter_version = get_version("fastapi-limiter")
+        except Exception:
+            limiter_version = "unknown"
+
+        # Get connection pool from the redis client
+        connection_pool: Any = getattr(redis, "connection_pool", None)
+        if connection_pool is None:
+            return
+
+        # Try to use DriverInfo class
+        try:
+            from redis import DriverInfo
+
+            driver_info = DriverInfo().add_upstream_driver("fastapi-limiter", limiter_version)
+            connection_pool.connection_kwargs["driver_info"] = driver_info
+        except (ImportError, AttributeError):
+            # Fallback: use lib_name/lib_version
+            # Format: lib_name='redis-py(fastapi-limiter_v{version})'
+            connection_pool.connection_kwargs["lib_name"] = (
+                f"redis-py(fastapi-limiter_v{limiter_version})"
+            )
+            # lib_version should be the redis client version
+            try:
+                import redis
+
+                redis_version = redis.__version__
+            except (ImportError, AttributeError):
+                redis_version = "unknown"
+            connection_pool.connection_kwargs["lib_version"] = redis_version
+
+    @classmethod
     async def init(
         cls,
         redis,
@@ -82,6 +128,7 @@ end"""
         cls.identifier = identifier
         cls.http_callback = http_callback
         cls.ws_callback = ws_callback
+        cls._add_driver_info(redis)
         cls.lua_sha = await redis.script_load(cls.lua_script)
 
     @classmethod
