@@ -12,8 +12,10 @@ async def default_identifier(request: Union[Request, WebSocket]):
     forwarded = request.headers.get("X-Forwarded-For")
     if forwarded:
         ip = forwarded.split(",")[0]
-    else:
+    elif request.client:
         ip = request.client.host
+    else:
+        ip = "127.0.0.1"
     return ip + ":" + request.scope["path"]
 
 
@@ -27,7 +29,9 @@ async def http_default_callback(request: Request, response: Response, pexpire: i
     """
     expire = ceil(pexpire / 1000)
     raise HTTPException(
-        HTTP_429_TOO_MANY_REQUESTS, "Too Many Requests", headers={"Retry-After": str(expire)}
+        HTTP_429_TOO_MANY_REQUESTS,
+        "Too Many Requests",
+        headers={"Retry-After": str(expire)},
     )
 
 
@@ -40,7 +44,9 @@ async def ws_default_callback(ws: WebSocket, pexpire: int):
     """
     expire = ceil(pexpire / 1000)
     raise HTTPException(
-        HTTP_429_TOO_MANY_REQUESTS, "Too Many Requests", headers={"Retry-After": str(expire)}
+        HTTP_429_TOO_MANY_REQUESTS,
+        "Too Many Requests",
+        headers={"Retry-After": str(expire)},
     )
 
 
@@ -86,4 +92,5 @@ end"""
 
     @classmethod
     async def close(cls) -> None:
-        await cls.redis.close()
+        if cls.redis:
+            await cls.redis.aclose()

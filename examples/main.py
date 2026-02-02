@@ -3,6 +3,7 @@ from contextlib import asynccontextmanager
 import redis.asyncio as redis
 import uvicorn
 from fastapi import Depends, FastAPI, HTTPException, WebSocket
+from starlette.websockets import WebSocketDisconnect
 
 from fastapi_limiter import FastAPILimiter
 from fastapi_limiter.depends import RateLimiter, WebSocketRateLimiter
@@ -49,9 +50,11 @@ async def websocket_endpoint(websocket: WebSocket):
             data = await websocket.receive_text()
             await ratelimit(websocket, context_key=data)  # NB: context_key is optional
             await websocket.send_text("Hello, world")
+        except WebSocketDisconnect:
+            break
         except HTTPException:
             await websocket.send_text("Hello again")
 
 
 if __name__ == "__main__":
-    uvicorn.run("main:app", debug=True, reload=True)
+    uvicorn.run("main:app", reload=True)

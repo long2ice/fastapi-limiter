@@ -1,5 +1,4 @@
 checkfiles = fastapi_limiter/ tests/ examples/ conftest.py
-black_opts = -l 100 -t py38
 py_warn = PYTHONDEVMODE=1
 
 help:
@@ -15,24 +14,22 @@ help:
 	@echo  "    style		Auto-formats the code"
 
 up:
-	@poetry update
+	@uv sync --upgrade
 
 deps:
-	@poetry install
+	@uv sync --all-groups
 
 style: deps
-	isort -src $(checkfiles)
-	black $(black_opts) $(checkfiles)
+	ruff format $(checkfiles)
 
 check: deps
-	black --check $(black_opts) $(checkfiles) || (echo "Please run 'make style' to auto-fix style issues" && false)
-	ruff $(checkfiles)
-	bandit -x tests -r $(checkfiles)
+	ruff check $(checkfiles)
+	ty check $(checkfiles)
 
 test: deps
 	$(py_warn) pytest
 
 build: deps
-	@poetry build
+	@uv run build
 
 ci: check test

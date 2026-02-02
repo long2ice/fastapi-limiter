@@ -1,47 +1,49 @@
-[tool.poetry]
-authors = ["long2ice <long2ice@gmail.com>"]
-description = "A request rate limiter for fastapi"
-documentation = "https://github.com/long2ice/fastapi-limiter"
-homepage = "https://github.com/long2ice/fastapi-limiter"
-include = ["CHANGELOG.md", "LICENSE", "README.md"]
-keywords = ["fastapi", "limiter"]
-license = "Apache2.0"
+[project]
 name = "fastapi-limiter"
-packages = [
-    { include = "fastapi_limiter" },
-]
+version = "0.1.7"
+description = "A request rate limiter for fastapi"
+authors = [{ name = "long2ice", email = "long2ice@gmail.com" }]
+requires-python = ">=3.9,<4"
 readme = "README.md"
-repository = "https://github.com/long2ice/fastapi-limiter.git"
-version = "0.1.6"
+license = "Apache-2.0"
+keywords = ["fastapi", "limiter"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+]
+dependencies = ["redis", "fastapi"]
 
-[tool.poetry.dependencies]
-redis = ">=4.2.0rc1"
-fastapi = "*"
-python = "^3.9"
+[project.urls]
+Homepage = "https://github.com/long2ice/fastapi-limiter"
+Repository = "https://github.com/long2ice/fastapi-limiter.git"
+Documentation = "https://github.com/long2ice/fastapi-limiter"
 
-[tool.poetry.group.dev.dependencies]
-uvicorn = "*"
-bandit = "*"
-black = "*"
-ruff = "*"
-isort = "*"
-pytest = "*"
-pytest-asyncio = "*"
-pytest-mock = "*"
-pytest-xdist = "*"
-requests = "*"
-httpx = "*"
+[dependency-groups]
+dev = [
+    "uvicorn",
+    "ruff",
+    "ty",
+    "pytest",
+    "pytest-asyncio",
+    "pytest-mock",
+    "pytest-xdist",
+    "requests",
+    "httpx",
+]
+
+[tool.uv.build-backend]
+module-name = ["fastapi_limiter"]
+module-root = ""
+source-include = ["CHANGELOG.md", "LICENSE", "README.md"]
 
 [build-system]
-build-backend = "poetry.core.masonry.api"
-requires = ["poetry-core>=1.0.0"]
+requires = ["uv_build>=0.9.26,<0.10.0"]
+build-backend = "uv_build"
 
-[tool.isort]
-profile = "black"
-
-[tool.black]
-line-length = 100
-target-version = ['py38', 'py39', 'py310', 'py311']
-
-[tool.ruff]
-line-length = 100
+[tool.pytest.ini_options]
+asyncio_default_fixture_loop_scope = "session"

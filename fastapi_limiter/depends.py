@@ -9,7 +9,7 @@ from starlette.websockets import WebSocket
 from fastapi_limiter import FastAPILimiter
 
 
-class RateLimiter:
+class _RateLimiterBase:
     def __init__(
         self,
         times: Annotated[int, Field(ge=0)] = 1,
@@ -21,20 +21,27 @@ class RateLimiter:
         callback: Optional[Callable] = None,
     ):
         self.times = times
-        self.milliseconds = milliseconds + 1000 * seconds + 60000 * minutes + 3600000 * hours
+        self.milliseconds = (
+            milliseconds + 1000 * seconds + 60000 * minutes + 3600000 * hours
+        )
         self.identifier = identifier
         self.callback = callback
 
-    async def _check(self, key):
+    async def _check(self, key: str) -> int:
         redis = FastAPILimiter.redis
-        pexpire = await redis.evalsha(
+        assert redis is not None
+        pexpire: int = await redis.evalsha(
             FastAPILimiter.lua_sha, 1, key, str(self.times), str(self.milliseconds)
         )
         return pexpire
 
+
+class RateLimiter(_RateLimiterBase):
     async def __call__(self, request: Request, response: Response):
         if not FastAPILimiter.redis:
-            raise Exception("You must call FastAPILimiter.init in startup event of fastapi!")
+            raise Exception(
+                "You must call FastAPILimiter.init in startup event of fastapi!"
+            )
         route_index = 0
         dep_index = 0
         for i, route in enumerate(request.app.routes):
@@ -48,11 +55,14 @@ class RateLimiter:
         # moved here because constructor run before app startup
         identifier = self.identifier or FastAPILimiter.identifier
         callback = self.callback or FastAPILimiter.http_callback
+        assert identifier is not None
+        assert callback is not None
         rate_key = await identifier(request)
         key = f"{FastAPILimiter.prefix}:{rate_key}:{route_index}:{dep_index}"
         try:
             pexpire = await self._check(key)
         except pyredis.exceptions.NoScriptError:
+            assert FastAPILimiter.redis is not None
             FastAPILimiter.lua_sha = await FastAPILimiter.redis.script_load(
                 FastAPILimiter.lua_script
             )
@@ -61,14 +71,18 @@ class RateLimiter:
             return await callback(request, response, pexpire)
 
 
-class WebSocketRateLimiter(RateLimiter):
-    async def __call__(self, ws: WebSocket, context_key=""):
+class WebSocketRateLimiter(_RateLimiterBase):
+    async def __call__(self, ws: WebSocket, context_key: str = ""):
         if not FastAPILimiter.redis:
-            raise Exception("You must call FastAPILimiter.init in startup event of fastapi!")
+            raise Exception(
+                "You must call FastAPILimiter.init in startup event of fastapi!"
+            )
         identifier = self.identifier or FastAPILimiter.identifier
+        assert identifier is not None
         rate_key = await identifier(ws)
         key = f"{FastAPILimiter.prefix}:ws:{rate_key}:{context_key}"
         pexpire = await self._check(key)
         callback = self.callback or FastAPILimiter.ws_callback
+        assert callback is not None
         if pexpire != 0:
             return await callback(ws, pexpire)
