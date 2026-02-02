@@ -20,14 +20,14 @@ deps:
 	@uv sync --all-groups
 
 style: deps
-	ruff format $(checkfiles)
+	@uv run ruff format $(checkfiles)
 
 check: deps
-	ruff check $(checkfiles)
-	ty check $(checkfiles)
+	@uv run ruff check $(checkfiles)
+	@uv run ty check $(checkfiles)
 
 test: deps
-	$(py_warn) pytest
+	@$(py_warn) uv run pytest
 
 build: deps
 	@uv build

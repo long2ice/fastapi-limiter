@@ -5,7 +5,7 @@ import uvicorn
 from fastapi import Depends, FastAPI, HTTPException, WebSocket
 from starlette.websockets import WebSocketDisconnect
 
-from fastapi_limiter import FastAPILimiter
+from fastapi_limiter import FastAPILimiter, skip_limiter
 from fastapi_limiter.depends import RateLimiter, WebSocketRateLimiter
 
 
@@ -39,6 +39,12 @@ async def index_post():
 )
 async def multiple():
     return {"msg": "Hello World"}
+
+
+@app.get("/skip", dependencies=[Depends(RateLimiter(times=1, seconds=5))])
+@skip_limiter
+async def skip_route():
+    return {"msg": "This route skips rate limiting"}
 
 
 @app.websocket("/ws")

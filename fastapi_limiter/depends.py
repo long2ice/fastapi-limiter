@@ -47,6 +47,9 @@ class RateLimiter(_RateLimiterBase):
         for i, route in enumerate(request.app.routes):
             if route.path == request.scope["path"] and hasattr(route, "methods") and request.method in route.methods:
                 route_index = i
+                # Check if the route endpoint has _skip_limiter attribute
+                if hasattr(route, "endpoint") and getattr(route.endpoint, "_skip_limiter", False):
+                    return
                 for j, dependency in enumerate(route.dependencies):
                     if self is dependency.dependency:
                         dep_index = j
