@@ -2,6 +2,7 @@ from math import ceil
 from typing import Callable, Optional, Union
 
 from fastapi import HTTPException
+from redis.asyncio import Redis
 from starlette.requests import Request
 from starlette.responses import Response
 from starlette.status import HTTP_429_TOO_MANY_REQUESTS
@@ -55,12 +56,12 @@ async def ws_default_callback(ws: WebSocket, pexpire: int):
 
 
 class FastAPILimiter:
-    redis = None
+    redis: Redis
     prefix: Optional[str] = None
-    lua_sha: Optional[str] = None
-    identifier: Optional[Callable] = None
-    http_callback: Optional[Callable] = None
-    ws_callback: Optional[Callable] = None
+    lua_sha: str
+    identifier: Callable = default_identifier
+    http_callback: Callable = http_default_callback
+    ws_callback: Callable = ws_default_callback
     lua_script = """local key = KEYS[1]
 local limit = tonumber(ARGV[1])
 local expire_time = ARGV[2]

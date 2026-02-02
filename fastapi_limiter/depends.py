@@ -1,4 +1,4 @@
-from typing import Annotated, Callable, Optional
+from typing import Annotated, Awaitable, Callable, Optional, cast
 
 import redis as pyredis
 from pydantic import Field
@@ -29,8 +29,11 @@ class _RateLimiterBase:
 
     async def _check(self, key: str) -> int:
         redis = FastAPILimiter.redis
-        pexpire: int = await redis.evalsha(
-            FastAPILimiter.lua_sha, 1, key, str(self.times), str(self.milliseconds)
+        pexpire: int = await cast(
+            Awaitable[int],
+            redis.evalsha(
+                FastAPILimiter.lua_sha, 1, key, str(self.times), str(self.milliseconds)
+            ),
         )
         return pexpire
 
