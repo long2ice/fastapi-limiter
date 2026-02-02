@@ -29,7 +29,6 @@ class _RateLimiterBase:
 
     async def _check(self, key: str) -> int:
         redis = FastAPILimiter.redis
-        assert redis is not None
         pexpire: int = await redis.evalsha(
             FastAPILimiter.lua_sha, 1, key, str(self.times), str(self.milliseconds)
         )
@@ -45,10 +44,16 @@ class RateLimiter(_RateLimiterBase):
         route_index = 0
         dep_index = 0
         for i, route in enumerate(request.app.routes):
-            if route.path == request.scope["path"] and hasattr(route, "methods") and request.method in route.methods:
+            if (
+                route.path == request.scope["path"]
+                and hasattr(route, "methods")
+                and request.method in route.methods
+            ):
                 route_index = i
                 # Check if the route endpoint has _skip_limiter attribute
-                if hasattr(route, "endpoint") and getattr(route.endpoint, "_skip_limiter", False):
+                if hasattr(route, "endpoint") and getattr(
+                    route.endpoint, "_skip_limiter", False
+                ):
                     return
                 for j, dependency in enumerate(route.dependencies):
                     if self is dependency.dependency:
@@ -58,8 +63,6 @@ class RateLimiter(_RateLimiterBase):
         # moved here because constructor run before app startup
         identifier = self.identifier or FastAPILimiter.identifier
         callback = self.callback or FastAPILimiter.http_callback
-        assert identifier is not None
-        assert callback is not None
         rate_key = await identifier(request)
         key = f"{FastAPILimiter.prefix}:{rate_key}:{route_index}:{dep_index}"
         try:
@@ -81,7 +84,6 @@ class WebSocketRateLimiter(_RateLimiterBase):
                 "You must call FastAPILimiter.init in startup event of fastapi!"
             )
         identifier = self.identifier or FastAPILimiter.identifier
-        assert identifier is not None
         rate_key = await identifier(ws)
         key = f"{FastAPILimiter.prefix}:ws:{rate_key}:{context_key}"
         pexpire = await self._check(key)

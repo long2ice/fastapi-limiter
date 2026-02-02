@@ -17,5 +17,5 @@ def skip_limiter(func: Callable) -> Callable:
     async def wrapper(*args, **kwargs):
         return await func(*args, **kwargs)
 
-    wrapper._skip_limiter = True
+    wrapper._skip_limiter = True  # type: ignore
     return wrapper
