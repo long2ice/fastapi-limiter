@@ -30,6 +30,6 @@ test: deps
 	$(py_warn) pytest
 
 build: deps
-	@uv run build
+	@uv build
 
 ci: check test
