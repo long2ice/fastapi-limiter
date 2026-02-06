@@ -7,11 +7,7 @@
 
 ## Introduction
 
-FastAPI-Limiter is a rate limiting tool for [fastapi](https://github.com/tiangolo/fastapi) routes with lua script.
-
-## Requirements
-
-- [redis](https://redis.io/)
+FastAPI-Limiter is a rate limiting tool for [fastapi](https://github.com/tiangolo/fastapi) routes, powered by [pyrate-limiter](https://github.com/vutran1710/PyrateLimiter).
 
 ## Install
 
@@ -23,77 +19,65 @@ Just install from pypi
 
 ## Quick Start
 
-FastAPI-Limiter is simple to use, which just provide a dependency `RateLimiter`, the following example allow `2` times
-request per `5` seconds in route `/`.
+FastAPI-Limiter is simple to use, which just provides a dependency `RateLimiter`. The following example allows `2` requests per `5` seconds on route `/`.
 
 ```py
-import redis.asyncio as redis
 import uvicorn
-from contextlib import asynccontextmanager
 from fastapi import Depends, FastAPI
+from pyrate_limiter import Duration, Limiter, Rate
 
-from fastapi_limiter import FastAPILimiter
 from fastapi_limiter.depends import RateLimiter
 
-@asynccontextmanager
-async def lifespan(_: FastAPI):
-    redis_connection = redis.from_url("redis://localhost:6379", encoding="utf8")
-    await FastAPILimiter.init(redis_connection)
-    yield
-    await FastAPILimiter.close()
+app = FastAPI()
 
-app = FastAPI(lifespan=lifespan)
-
-@app.get("/", dependencies=[Depends(RateLimiter(times=2, seconds=5))])
+@app.get(
+    "/",
+    dependencies=[Depends(RateLimiter(limiter=Limiter(Rate(2, Duration.SECOND * 5))))],
+)
 async def index():
     return {"msg": "Hello World"}
 
 
 if __name__ == "__main__":
-    uvicorn.run("main:app", debug=True, reload=True)
+    uvicorn.run("main:app", reload=True)
 ```
 
 ## Usage
 
-There are some config in `FastAPILimiter.init`.
+### RateLimiter
 
-### redis
+`RateLimiter` accepts the following parameters:
 
-The `redis` instance of `aioredis`.
-
-### prefix
-
-Prefix of redis key.
+- `limiter`: A `pyrate_limiter.Limiter` instance that defines the rate limiting rules.
+- `identifier`: A callable to identify the request source, default is by IP + path.
+- `callback`: A callable invoked when the rate limit is exceeded, default raises `HTTPException` with `429` status code.
+- `blocking`: Whether to block the request when the rate limit is exceeded, default is `False`.
 
 ### identifier
 
-Identifier of route limit, default is `ip`, you can override it such as `userid` and so on.
+Identifier of route limit, default is `ip + path`, you can override it such as `userid` and so on.
 
 ```py
-async def default_identifier(request: Request):
+async def default_identifier(request: Union[Request, WebSocket]):
     forwarded = request.headers.get("X-Forwarded-For")
     if forwarded:
-        return forwarded.split(",")[0]
-    return request.client.host + ":" + request.scope["path"]
+        ip = forwarded.split(",")[0]
+    elif request.client:
+        ip = request.client.host
+    else:
+        ip = "127.0.0.1"
+    return ip + ":" + request.scope["path"]
 ```
 
 ### callback
 
-Callback when access is forbidden, default is raise `HTTPException` with `429` status code.
+Callback when rate limit is exceeded, default raises `HTTPException` with `429` status code.
 
 ```py
-async def default_callback(request: Request, response: Response, pexpire: int):
-    """
-    default callback when too many requests
-    :param request:
-    :param pexpire: The remaining milliseconds
-    :param response:
-    :return:
-    """
-    expire = ceil(pexpire / 1000)
-
+def default_callback(*args, **kwargs):
     raise HTTPException(
-        HTTP_429_TOO_MANY_REQUESTS, "Too Many Requests", headers={"Retry-After": str(expire)}
+        HTTP_429_TOO_MANY_REQUESTS,
+        "Too Many Requests",
     )
 ```
 
@@ -105,19 +89,35 @@ You can use multiple limiters in one route.
 @app.get(
     "/multiple",
     dependencies=[
-        Depends(RateLimiter(times=1, seconds=5)),
-        Depends(RateLimiter(times=2, seconds=15)),
+        Depends(RateLimiter(limiter=Limiter(Rate(1, Duration.SECOND * 5)))),
+        Depends(RateLimiter(limiter=Limiter(Rate(2, Duration.SECOND * 15)))),
     ],
 )
 async def multiple():
     return {"msg": "Hello World"}
 ```
 
-Not that you should note the dependencies orders, keep lower of result of `seconds/times` at the first.
+Note that you should keep the stricter limiter (lower `seconds/times` ratio) first.
 
-## Rate limiting within a websocket.
+## Skip rate limiting
 
-While the above examples work with rest requests, FastAPI also allows easy usage
+You can use the `skip_limiter` decorator to skip rate limiting for a specific route.
+
+```py
+from fastapi_limiter.decorators import skip_limiter
+
+@app.get(
+    "/skip",
+    dependencies=[Depends(RateLimiter(limiter=Limiter(Rate(1, Duration.SECOND * 5))))],
+)
+@skip_limiter
+async def skip_route():
+    return {"msg": "This route skips rate limiting"}
+```
+
+## Rate limiting within a websocket
+
+While the above examples work with REST requests, FastAPI also allows easy usage
 of websockets, which require a slightly different approach.
 
 Because websockets are likely to be long lived, you may want to rate limit in
@@ -126,40 +126,19 @@ response to data sent over the socket.
 You can do this by rate limiting within the body of the websocket handler:
 
 ```py
+from fastapi_limiter.depends import WebSocketRateLimiter
+
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
     await websocket.accept()
-    ratelimit = WebSocketRateLimiter(times=1, seconds=5)
+    ratelimit = WebSocketRateLimiter(limiter=Limiter(Rate(1, Duration.SECOND * 5)))
     while True:
         try:
             data = await websocket.receive_text()
             await ratelimit(websocket, context_key=data)  # NB: context_key is optional
-            await websocket.send_text(f"Hello, world")
-        except WebSocketRateLimitException:  # Thrown when rate limit exceeded.
-            await websocket.send_text(f"Hello again")
-```
-
-## Lua script
-
-The lua script used.
-
-```lua
-local key = KEYS[1]
-local limit = tonumber(ARGV[1])
-local expire_time = ARGV[2]
-
-local current = tonumber(redis.call('get', key) or "0")
-if current > 0 then
-    if current + 1 > limit then
-        return redis.call("PTTL", key)
-    else
-        redis.call("INCR", key)
-        return 0
-    end
-else
-    redis.call("SET", key, 1, "px", expire_time)
-    return 0
-end
+            await websocket.send_text("Hello, world")
+        except HTTPException:
+            await websocket.send_text("Hello again")
 ```
 
 ## License

@@ -63,13 +63,12 @@ def test_limiter_websockets():
 
             ws.send_text("Hi 2")
             data = ws.receive_text()
-            assert data == "Hello, world"
+            assert data == "Hello again"
             ws.close()
 
 
 def test_skip_limiter():
     with TestClient(app) as client:
-        # Even with RateLimiter(times=1), skip_limiter allows unlimited requests
         for _ in range(5):
             response = client.get("/skip")
             assert response.status_code == 200

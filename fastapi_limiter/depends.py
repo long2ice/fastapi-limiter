@@ -1,49 +1,30 @@
-from typing import Annotated, Awaitable, Callable, Optional, cast
+from typing import Callable
 
-import redis as pyredis
-from pydantic import Field
+from pyrate_limiter import Limiter
 from starlette.requests import Request
 from starlette.responses import Response
 from starlette.websockets import WebSocket
 
-from fastapi_limiter import FastAPILimiter
+from fastapi_limiter.callback import default_callback
+from fastapi_limiter.identifier import default_identifier
 
 
-class _RateLimiterBase:
+class _BaseRateLimiter:
     def __init__(
         self,
-        times: Annotated[int, Field(ge=0)] = 1,
-        milliseconds: Annotated[int, Field(ge=-1)] = 0,
-        seconds: Annotated[int, Field(ge=-1)] = 0,
-        minutes: Annotated[int, Field(ge=-1)] = 0,
-        hours: Annotated[int, Field(ge=-1)] = 0,
-        identifier: Optional[Callable] = None,
-        callback: Optional[Callable] = None,
+        limiter: Limiter,
+        identifier: Callable = default_identifier,
+        callback: Callable = default_callback,
+        blocking: bool = False,
     ):
-        self.times = times
-        self.milliseconds = (
-            milliseconds + 1000 * seconds + 60000 * minutes + 3600000 * hours
-        )
+        self.limiter = limiter
         self.identifier = identifier
         self.callback = callback
-
-    async def _check(self, key: str) -> int:
-        redis = FastAPILimiter.redis
-        pexpire: int = await cast(
-            Awaitable[int],
-            redis.evalsha(
-                FastAPILimiter.lua_sha, 1, key, str(self.times), str(self.milliseconds)
-            ),
-        )
-        return pexpire
+        self.blocking = blocking
 
 
-class RateLimiter(_RateLimiterBase):
+class RateLimiter(_BaseRateLimiter):
     async def __call__(self, request: Request, response: Response):
-        if not FastAPILimiter.redis:
-            raise Exception(
-                "You must call FastAPILimiter.init in startup event of fastapi!"
-            )
         route_index = 0
         dep_index = 0
         for i, route in enumerate(request.app.routes):
@@ -63,34 +44,17 @@ class RateLimiter(_RateLimiterBase):
                         dep_index = j
                         break
 
-        # moved here because constructor run before app startup
-        identifier = self.identifier or FastAPILimiter.identifier
-        callback = self.callback or FastAPILimiter.http_callback
-        rate_key = await identifier(request)
-        key = f"{FastAPILimiter.prefix}:{rate_key}:{route_index}:{dep_index}"
-        try:
-            pexpire = await self._check(key)
-        except pyredis.exceptions.NoScriptError:
-            assert FastAPILimiter.redis is not None
-            FastAPILimiter.lua_sha = await FastAPILimiter.redis.script_load(
-                FastAPILimiter.lua_script
-            )
-            pexpire = await self._check(key)
-        if pexpire != 0:
-            return await callback(request, response, pexpire)
+        rate_key = await self.identifier(request)
+        key = f"{rate_key}:{route_index}:{dep_index}"
+        success = await self.limiter.try_acquire_async(key, blocking=self.blocking)
+        if not success:
+            return await self.callback(request, response)
 
 
-class WebSocketRateLimiter(_RateLimiterBase):
+class WebSocketRateLimiter(_BaseRateLimiter):
     async def __call__(self, ws: WebSocket, context_key: str = ""):
-        if not FastAPILimiter.redis:
-            raise Exception(
-                "You must call FastAPILimiter.init in startup event of fastapi!"
-            )
-        identifier = self.identifier or FastAPILimiter.identifier
-        rate_key = await identifier(ws)
-        key = f"{FastAPILimiter.prefix}:ws:{rate_key}:{context_key}"
-        pexpire = await self._check(key)
-        callback = self.callback or FastAPILimiter.ws_callback
-        assert callback is not None
-        if pexpire != 0:
-            return await callback(ws, pexpire)
+        rate_key = await self.identifier(ws)
+        key = f"{rate_key}:{context_key}"
+        success = await self.limiter.try_acquire_async(key, blocking=self.blocking)
+        if not success:
+            return await self.callback(ws)
