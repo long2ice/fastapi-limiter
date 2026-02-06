@@ -52,6 +52,7 @@ if __name__ == "__main__":
 - `identifier`: A callable to identify the request source, default is by IP + path.
 - `callback`: A callable invoked when the rate limit is exceeded, default raises `HTTPException` with `429` status code.
 - `blocking`: Whether to block the request when the rate limit is exceeded, default is `False`.
+- `skip`: An async callable that takes a request and returns `True` to skip rate limiting, default is `None`.
 
 ### identifier
 
@@ -101,19 +102,48 @@ Note that you should keep the stricter limiter (lower `seconds/times` ratio) fir
 
 ## Skip rate limiting
 
-You can use the `skip_limiter` decorator to skip rate limiting for a specific route.
+You can pass a `skip` callable to `RateLimiter` to conditionally skip rate limiting for a specific route. The callable receives the request and should return `True` to skip.
 
 ```py
-from fastapi_limiter.decorators import skip_limiter
+from fastapi.requests import Request
+
+async def skip(request: Request):
+    return request.scope["path"] == "/skip"
 
 @app.get(
     "/skip",
-    dependencies=[Depends(RateLimiter(limiter=Limiter(Rate(1, Duration.SECOND * 5))))],
+    dependencies=[
+        Depends(RateLimiter(limiter=Limiter(Rate(1, Duration.SECOND * 5)), skip=skip))
+    ],
 )
-@skip_limiter
 async def skip_route():
     return {"msg": "This route skips rate limiting"}
 ```
+
+## Middleware
+
+You can also use `RateLimiterMiddleware` to apply rate limiting globally to all routes without adding dependencies to each route individually.
+
+```py
+from fastapi import FastAPI
+from pyrate_limiter import Duration, Limiter, Rate
+
+from fastapi_limiter.middleware import RateLimiterMiddleware
+
+app = FastAPI()
+
+app.add_middleware(
+    RateLimiterMiddleware,
+    limiter=Limiter(Rate(2, Duration.SECOND * 5)),
+)
+
+
+@app.get("/")
+async def index():
+    return {"msg": "Hello World"}
+```
+
+`RateLimiterMiddleware` accepts the same `identifier`, `callback`, `blocking`, and `skip` parameters as `RateLimiter`.
 
 ## Rate limiting within a websocket
 

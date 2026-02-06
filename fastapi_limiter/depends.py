@@ -1,5 +1,3 @@
-from typing import Callable
-
 from pyrate_limiter import Limiter
 from starlette.requests import Request
 from starlette.responses import Response
@@ -13,46 +11,32 @@ class _BaseRateLimiter:
     def __init__(
         self,
         limiter: Limiter,
-        identifier: Callable = default_identifier,
-        callback: Callable = default_callback,
+        identifier=default_identifier,
+        callback=default_callback,
         blocking: bool = False,
+        skip=None,
     ):
         self.limiter = limiter
         self.identifier = identifier
         self.callback = callback
         self.blocking = blocking
+        self.skip = skip
 
 
 class RateLimiter(_BaseRateLimiter):
     async def __call__(self, request: Request, response: Response):
-        route_index = 0
-        dep_index = 0
-        for i, route in enumerate(request.app.routes):
-            if (
-                route.path == request.scope["path"]
-                and hasattr(route, "methods")
-                and request.method in route.methods
-            ):
-                route_index = i
-                # Check if the route endpoint has _skip_limiter attribute
-                if hasattr(route, "endpoint") and getattr(
-                    route.endpoint, "_skip_limiter", False
-                ):
-                    return
-                for j, dependency in enumerate(route.dependencies):
-                    if self is dependency.dependency:
-                        dep_index = j
-                        break
-
+        if self.skip and await self.skip(request):
+            return
         rate_key = await self.identifier(request)
-        key = f"{rate_key}:{route_index}:{dep_index}"
-        success = await self.limiter.try_acquire_async(key, blocking=self.blocking)
+        success = await self.limiter.try_acquire_async(rate_key, blocking=self.blocking)
         if not success:
             return await self.callback(request, response)
 
 
 class WebSocketRateLimiter(_BaseRateLimiter):
     async def __call__(self, ws: WebSocket, context_key: str = ""):
+        if self.skip and await self.skip(ws):
+            return
         rate_key = await self.identifier(ws)
         key = f"{rate_key}:{context_key}"
         success = await self.limiter.try_acquire_async(key, blocking=self.blocking)
