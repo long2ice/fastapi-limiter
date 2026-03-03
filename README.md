@@ -171,7 +171,49 @@ async def websocket_endpoint(websocket: WebSocket):
             await websocket.send_text("Hello again")
 ```
 
-## License
+---
+## Migration Guide (v0.1.x → v0.2.0)
 
+### API Changes
+
+In v0.2.0, the public API has been restructured.
+
+- `FastAPILimiter` is not available in v0.2.0..
+- Redis-based initialization via `FastAPILimiter.init()` has been removed.
+- Rate limiting is now built around `pyrate_limiter.Limiter`.
+
+### Import Changes
+
+| v0.1.x | v0.2.0 |
+|--------|--------|
+| `from fastapi_limiter import FastAPILimiter` | `from fastapi_limiter import RateLimiter` |
+| `await FastAPILimiter.init(redis)` | Create a `Limiter` instance from `pyrate_limiter` |
+| `RateLimiter()` | `Depends(RateLimiter(limiter=limiter))` |
+
+---
+
+### Example – v0.1.x
+
+```python
+from fastapi_limiter import FastAPILimiter
+
+await FastAPILimiter.init(redis)
+```
+### Example – v0.2.0
+```python
+from fastapi import FastAPI, Depends
+from pyrate_limiter import Limiter, Rate, Duration
+from fastapi_limiter import RateLimiter
+
+app = FastAPI()
+
+limiter = Limiter(Rate(2, Duration.SECOND * 5))
+
+@app.get("/", dependencies=[Depends(RateLimiter(limiter=limiter))])
+async def root():
+    return {"msg": "Hello"}
+```
+---
+## License
 This project is licensed under the
 [Apache-2.0](https://github.com/long2ice/fastapi-limiter/blob/master/LICENCE) License.
