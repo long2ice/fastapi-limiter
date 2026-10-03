@@ -4,6 +4,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 from starlette.responses import JSONResponse, Response
 
+from fastapi_limiter.callback import _run_callback
 from fastapi_limiter.identifier import default_identifier
 
 
@@ -37,6 +38,6 @@ class RateLimiterMiddleware(BaseHTTPMiddleware):
         rate_key = await self.identifier(request)
         success = await self.limiter.try_acquire_async(rate_key, blocking=self.blocking)
         if not success:
-            return await self.callback(request)
+            return await _run_callback(self.callback, request)
 
         return await call_next(request)

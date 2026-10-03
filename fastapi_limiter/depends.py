@@ -3,7 +3,7 @@ from starlette.requests import Request
 from starlette.responses import Response
 from starlette.websockets import WebSocket
 
-from fastapi_limiter.callback import default_callback
+from fastapi_limiter.callback import _run_callback, default_callback
 from fastapi_limiter.identifier import default_identifier
 
 
@@ -30,7 +30,7 @@ class RateLimiter(_BaseRateLimiter):
         rate_key = await self.identifier(request)
         success = await self.limiter.try_acquire_async(rate_key, blocking=self.blocking)
         if not success:
-            return await self.callback(request, response)
+            return await _run_callback(self.callback, request, response)
 
 
 class WebSocketRateLimiter(_BaseRateLimiter):
@@ -41,4 +41,4 @@ class WebSocketRateLimiter(_BaseRateLimiter):
         key = f"{rate_key}:{context_key}"
         success = await self.limiter.try_acquire_async(key, blocking=self.blocking)
         if not success:
-            return await self.callback(ws)
+            return await _run_callback(self.callback, ws)
